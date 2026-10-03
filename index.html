@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ONÉNÉ CHOCO SQL TRAINING</title>
+<script src="https://cdn.jsdelivr.net/npm/alasql@4.2.2/dist/alasql.min.js"></script>
+<style>
+:root{
+  --bg:#050816; --bg2:rgba(0,0,0,.35); --th:#0a0f1f;
+  --panel:rgba(255,255,255,.06); --panel2:rgba(255,255,255,.10);
+  --accent:#00ffff; --accent-rgb:0,255,255;
+  --accent2:#a78bfa; --accent2-rgb:167,139,250;
+  --accent3:#f472b6;
+  --border:rgba(var(--accent-rgb),.22);
+  --text:#ffffff; --muted:#a9b3c9;
+  --green:#34d399; --green-bg:rgba(52,211,153,.12);
+  --red:#f87171; --red-bg:rgba(248,113,113,.12);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:'Segoe UI',sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;font-family:'Segoe UI',sans-serif;}
+pre,code,textarea.sql,table.res,#sqlInput{font-family:var(--mono);}
+html{background:var(--bg);transition:background-color .8s ease;}
+html,body{margin:0;color:var(--text);font-size:17px;}
+body{min-height:100%;overflow-x:hidden;position:relative;background:var(--bg);transition:background-color .8s ease;}
+
+/* ---- Fond Cyber Fireflies (canvas) ---- */
+#fx{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+#confetti-layer{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;}
+.confetti-piece{position:absolute;top:-20px;border-radius:2px;animation:confetti-fall linear forwards;}
+@keyframes confetti-fall{to{transform:translateY(110vh) rotate(540deg);opacity:.2;}}
+@keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.05);}100%{transform:scale(1);}}
+@keyframes hue{0%{background-position:0% center;}100%{background-position:200% center;}}
+
+.wrap{max-width:1320px;margin:0 auto;padding:28px 20px 60px;position:relative;z-index:1;}
+.layout-wrap{display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:start;}
+.screens-col{min-width:0;}
+@media (max-width:960px){.layout-wrap{grid-template-columns:1fr;}}
+
+/* ---- Bloc info façon "glass" ---- */
+.info{position:fixed;bottom:20px;left:20px;color:#fff;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:12px 18px;border-radius:15px;font-size:14px;line-height:1.6;z-index:10;pointer-events:none;border:1px solid var(--border);}
+@media (max-width:1100px){.info{display:none;}}
+
+/* ---- Colonne référence SQL ---- */
+.sql-ref{position:sticky;top:20px;background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:15px;padding:20px 18px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 0 0 1px rgba(var(--accent-rgb),.05),0 20px 60px -24px rgba(0,0,0,.6);max-height:calc(100vh - 40px);overflow-y:auto;}
+@media (max-width:960px){.sql-ref{position:relative;top:0;max-height:none;}}
+.sql-ref h3{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:8px;text-shadow:0 0 12px rgba(var(--accent-rgb),.6);}
+.sql-ref .sub{color:var(--muted);font-size:12.5px;margin-bottom:14px;line-height:1.5;}
+.sql-ref .order-pill{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;}
+.sql-ref .order-pill span{font-family:var(--mono);font-size:10.5px;background:var(--bg2);border:1px solid var(--border);color:var(--accent2);padding:3px 7px;border-radius:6px;}
+.sql-ref details{border-bottom:1px solid var(--border);padding:9px 0;}
+.sql-ref details:last-of-type{border-bottom:none;}
+.sql-ref summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--accent);display:flex;align-items:center;gap:7px;list-style:none;user-select:none;}
+.sql-ref summary::-webkit-details-marker{display:none;}
+.sql-ref summary::before{content:'▸';display:inline-block;transition:transform .18s;color:var(--muted);font-size:12px;}
+.sql-ref details[open] summary::before{transform:rotate(90deg);}
+.sql-ref .clause-body{margin-top:8px;color:#d3daea;font-size:13px;line-height:1.55;}
+.sql-ref .clause-body p{margin:0 0 7px;}
+.sql-ref pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-family:var(--mono);font-size:12px;overflow-x:auto;color:#b6bdcc;margin:5px 0;}
+.sql-ref code{font-family:var(--mono);color:var(--accent3);background:rgba(244,114,182,.1);padding:1px 5px;border-radius:4px;font-size:12px;}
+
+/* ---- Chatbot ---- */
+.chat-fab{position:fixed;bottom:22px;right:22px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;cursor:pointer;font-size:23px;z-index:90;box-shadow:0 0 24px rgba(var(--accent-rgb),.55);display:flex;align-items:center;justify-content:center;transition:.2s;}
+.chat-fab:hover{transform:translateY(-3px) scale(1.06);}
+.chat-fab.hidden{display:none;}
+.chat-panel{position:fixed;bottom:90px;right:22px;width:380px;max-width:calc(100vw - 32px);height:min(560px,72vh);background:rgba(5,8,22,.92);border:1px solid var(--border);border-radius:15px;box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 30px rgba(var(--accent-rgb),.12);display:flex;flex-direction:column;z-index:90;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);overflow:hidden;}
+.chat-panel.hidden{display:none;}
+.chat-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.chat-head h4{margin:0;font-size:15px;display:flex;align-items:center;gap:8px;text-shadow:0 0 10px rgba(var(--accent-rgb),.6);}
+.chat-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:19px;line-height:1;padding:2px 4px;}
+.chat-close:hover{color:var(--accent);}
+.chat-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.chat-msg{max-width:88%;padding:9px 12px;border-radius:12px;font-size:13.5px;line-height:1.55;word-break:break-word;}
+.chat-msg.user{align-self:flex-end;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#04141a;font-weight:600;border-bottom-right-radius:3px;}
+.chat-msg.bot{align-self:flex-start;background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:3px;}
+.chat-msg.bot pre{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;padding:8px;font-family:var(--mono);font-size:12px;overflow-x:auto;margin:6px 0;white-space:pre;}
+.chat-msg.hint{align-self:center;color:var(--muted);font-size:12px;font-style:italic;text-align:center;max-width:100%;}
+.chat-foot{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border);flex-shrink:0;}
+.chat-foot textarea{flex:1;min-height:38px;max-height:100px;resize:none;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--sans);font-size:13.5px;padding:9px 11px;}
+.chat-foot textarea:focus{outline:none;border-color:var(--accent);}
+.chat-send{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;color:#04141a;border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer;font-size:13px;flex-shrink:0;}
+.chat-send:disabled{opacity:.4;cursor:not-allowed;}
+@media (max-width:480px){.chat-panel{right:16px;bottom:82px;} .chat-fab{right:16px;bottom:16px;}}
+
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:10px;}
+.logo{font-weight:700;font-size:clamp(18px,4.2vw,28px);letter-spacing:5px;text-transform:uppercase;color:#fff;display:flex;align-items:center;gap:9px;flex-wrap:wrap;cursor:pointer;
+  text-shadow:0 0 15px var(--accent),0 0 30px var(--accent),0 0 60px var(--accent);animation:pulse 3s infinite;transform-origin:left center;}
+.logo .glow-icon{filter:drop-shadow(0 0 10px var(--accent));font-size:28px;}
+.head-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.badge{font-size:14px;color:#fff;border:1px solid var(--border);border-radius:15px;padding:6px 14px;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.hidden{display:none !important;}
+.screen{animation:screenIn .45s cubic-bezier(.16,1,.3,1);}
+@keyframes screenIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}
+.card{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:15px;padding:24px;cursor:pointer;transition:.25s;position:relative;overflow:hidden;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.card::before{content:'';position:absolute;inset:0;border-radius:15px;padding:1px;background:linear-gradient(120deg,transparent,rgba(var(--accent-rgb),.6),transparent);opacity:0;transition:.25s;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.card:hover{border-color:transparent;transform:translateY(-4px);box-shadow:0 16px 40px -12px rgba(var(--accent-rgb),.45);}
+.card:hover::before{opacity:1;}
+.card .icon{font-size:36px;margin-bottom:10px;filter:drop-shadow(0 0 10px rgba(var(--accent-rgb),.5));}
+.card h3{margin:0 0 6px;font-size:20px;text-shadow:0 0 12px rgba(var(--accent-rgb),.5);}
+.card p{margin:0;color:var(--muted);font-size:15px;line-height:1.55;}
+h1{font-size:clamp(22px,4vw,30px);margin:0 0 6px;letter-spacing:4px;text-transform:uppercase;text-shadow:0 0 15px var(--accent),0 0 30px rgba(var(--accent-rgb),.6);}
+h2{font-size:17px;color:var(--muted);font-weight:400;margin:0 0 20px;opacity:.9;}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:20px;}
+.level-btn{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:15px;padding:20px;text-align:left;cursor:pointer;color:var(--text);transition:.2s;position:relative;font-size:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.level-btn:hover{border-color:var(--accent2);transform:translateY(-3px);box-shadow:0 14px 30px -14px rgba(var(--accent2-rgb),.6);}
+.level-btn .dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:8px;box-shadow:0 0 10px currentColor;}
+.back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:6px 0;margin-bottom:14px;display:inline-flex;align-items:center;gap:4px;transition:.2s;}
+.back:hover{color:var(--accent);transform:translateX(-3px);}
+.schema{margin-top:24px;border-top:1px solid var(--border);padding-top:16px;}
+.schema summary{cursor:pointer;color:var(--muted);font-size:15px;}
+.schema pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:14px;color:#b6bdcc;overflow-x:auto;margin-top:10px;}
+.panel{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:15px;padding:26px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 0 0 1px rgba(var(--accent-rgb),.05),0 20px 60px -20px rgba(0,0,0,.6);transition:box-shadow .3s;}
+.panel.shake{animation:shake .4s;}
+@keyframes shake{10%,90%{transform:translateX(-2px);}20%,80%{transform:translateX(4px);}30%,50%,70%{transform:translateX(-8px);}40%,60%{transform:translateX(8px);}}
+.panel.flash-ok{box-shadow:0 0 0 1px rgba(52,211,153,.5),0 0 40px rgba(52,211,153,.25);}
+.panel.flash-ko{box-shadow:0 0 0 1px rgba(248,113,113,.5),0 0 40px rgba(248,113,113,.2);}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:15px;color:var(--muted);flex-wrap:wrap;gap:8px;}
+.progress{height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:20px;position:relative;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));background-size:200% auto;box-shadow:0 0 12px rgba(var(--accent-rgb),.7);transition:width .35s cubic-bezier(.16,1,.3,1);animation:hue 4s linear infinite;}
+.question{font-size:19px;line-height:1.65;margin-bottom:16px;}
+textarea{width:100%;min-height:120px;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--mono);font-size:16px;padding:16px;resize:vertical;transition:.2s;}
+textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15),0 0 24px rgba(var(--accent-rgb),.12);}
+.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+button{font-family:var(--sans);}
+button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#04141a;border:none;border-radius:10px;padding:12px 22px;font-weight:700;cursor:pointer;font-size:16px;position:relative;overflow:hidden;transition:.2s;box-shadow:0 0 20px rgba(var(--accent-rgb),.45);}
+button.primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 30px rgba(var(--accent-rgb),.7);}
+button.primary:active:not(:disabled){transform:translateY(0);}
+button.primary:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
+button.ghost{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:12px 22px;cursor:pointer;font-size:16px;transition:.2s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+button.ghost:hover{border-color:var(--accent2);color:var(--accent2);transform:translateY(-2px);}
+button.small{padding:8px 14px;font-size:14px;}
+.feedback{margin-top:18px;border-radius:12px;padding:18px;font-size:16px;animation:feedIn .35s cubic-bezier(.16,1,.3,1);}
+@keyframes feedIn{from{opacity:0;transform:translateY(-6px) scale(.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+.feedback.ok{background:var(--green-bg);border:1px solid var(--green);box-shadow:0 0 24px rgba(52,211,153,.15) inset;}
+.feedback.ko{background:var(--red-bg);border:1px solid var(--red);box-shadow:0 0 24px rgba(248,113,113,.12) inset;}
+.feedback .title{font-weight:700;margin-bottom:8px;font-size:17px;}
+.feedback.ok .title{color:var(--green);text-shadow:0 0 12px rgba(52,211,153,.5);}
+.feedback.ko .title{color:var(--red);text-shadow:0 0 12px rgba(248,113,113,.4);}
+.feedback pre{background:rgba(0,0,0,.45);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:14px;overflow-x:auto;margin:8px 0;color:#e1e5ee;}
+table.res{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--mono);margin-top:6px;}
+table.res th,table.res td{border:1px solid var(--border);padding:7px 10px;text-align:left;white-space:nowrap;}
+table.res th{background:var(--th);color:var(--accent);position:sticky;top:0;}
+.tablewrap{overflow-x:auto;max-height:280px;overflow-y:auto;border-radius:8px;}
+.data-panel{margin-top:14px;border-top:1px solid var(--border);padding-top:14px;}
+.data-panel summary{cursor:pointer;color:var(--accent);font-size:15px;font-weight:600;user-select:none;}
+.data-tables{margin-top:12px;display:flex;flex-direction:column;gap:16px;}
+.data-tables h4{margin:0 0 6px;font-size:15px;color:var(--muted);font-family:var(--mono);}
+.recap{text-align:center;padding:34px 10px;}
+.recap .score{font-size:56px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% auto;animation:hue 5s linear infinite;margin:10px 0;filter:drop-shadow(0 0 18px rgba(var(--accent-rgb),.5));}
+footer{color:var(--muted);font-size:14px;text-align:center;margin-top:30px;position:relative;z-index:1;}
+@media (prefers-reduced-motion:reduce){.logo,.progress-fill,.recap .score{animation:none !important;} *{transition:none !important;}}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="confetti-layer"></div>
+
+<div class="info">
+  🎨 Clique sur le fond pour changer d'univers<br>
+  ⚡ Effets tech futuristes<br>
+  ✨ Lucioles dynamiques
+</div>
+
+<div class="wrap">
+<header>
+  <div class="logo" id="logo" title="Changer de thème"><span class="glow-icon">💾</span> <span>ONÉNÉ CHOCO</span>&nbsp;SQL TRAINING</div>
+  <div class="head-right">
+    <div id="statusBadge" class="badge hidden"></div>
+    <button class="ghost small" id="themeBtn" title="Changer de thème">🎨 Thème</button>
+  </div>
+</header>
+
+<div class="layout-wrap">
+<div class="screens-col">
+
+<div id="screen-db" class="screen">
+  <h1>Choisis ta base de données</h1>
+  <h2>Chaque base propose 4 niveaux de 20 questions, du débutant à l'expert.</h2>
+  <div class="grid" id="dbGrid"></div>
+</div>
+
+<div id="screen-level" class="screen hidden">
+  <button class="back" id="backToDb">← changer de base</button>
+  <h1 id="levelTitle"></h1>
+  <h2>Sélectionne un niveau pour commencer.</h2>
+  <div class="levels" id="levelGrid"></div>
+  <details class="schema"><summary>Voir le schéma des tables</summary><pre id="schemaView"></pre></details>
+</div>
+
+<div id="screen-quiz" class="screen hidden">
+  <button class="back" id="backToLevel">← changer de niveau</button>
+  <div class="panel">
+    <div class="topbar">
+      <span id="quizMeta"></span>
+      <span id="quizScore"></span>
+    </div>
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="question" id="questionText"></div>
+    <textarea id="sqlInput" spellcheck="false" placeholder="SELECT ...   (Ctrl + Entrée pour exécuter)"></textarea>
+    <div class="actions">
+      <button class="primary" id="runBtn">▶ Exécuter</button>
+      <button class="ghost hidden" id="retryQBtn">↺ Reprendre</button>
+      <button class="ghost hidden" id="nextBtn">Suivant →</button>
+    </div>
+    <div id="feedback"></div>
+    <details class="data-panel" id="dataPanel">
+      <summary>📊 Voir les données des tables</summary>
+      <div class="data-tables" id="dataTables"></div>
+    </details>
+  </div>
+</div>
+
+<div id="screen-recap" class="screen hidden">
+  <div class="panel recap">
+    <div style="color:var(--muted);font-size:13px;">Niveau terminé</div>
+    <div class="score" id="recapScore"></div>
+    <div style="color:var(--muted);margin-bottom:20px;" id="recapLabel"></div>
+    <div class="actions" style="justify-content:center;">
+      <button class="primary" id="retryBtn">↺ Rejouer ce niveau</button>
+      <button class="ghost" id="otherLevelBtn">Autre niveau</button>
+      <button class="ghost" id="otherDbBtn">Autre base</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<aside class="sql-ref">
+  <h3>📘 Mémo SQL</h3>
+  <div class="sub">Chaque clause, à quoi elle sert et comment l'écrire. Clique pour déplier.</div>
+
+  <div class="order-pill">
+    <span>FROM</span><span>WHERE</span><span>GROUP BY</span><span>HAVING</span><span>SELECT</span><span>ORDER BY</span><span>LIMIT</span>
+  </div>
+
+  <details open>
+    <summary>Ordre d'exécution logique</summary>
+    <div class="clause-body">
+      <p>Le moteur SQL ne lit pas la requête dans l'ordre où tu l'écris (SELECT en premier) mais dans cet ordre : <code>FROM</code> → <code>WHERE</code> → <code>GROUP BY</code> → <code>HAVING</code> → <code>SELECT</code> → <code>ORDER BY</code> → <code>LIMIT</code>.</p>
+      <p>C'est pourquoi <code>WHERE</code> ne peut pas utiliser un alias défini dans le <code>SELECT</code>, et pourquoi <code>HAVING</code> peut filtrer sur un agrégat alors que <code>WHERE</code> ne le peut pas.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>SELECT</summary>
+    <div class="clause-body">
+      <p>Choisit les colonnes (ou expressions) à afficher dans le résultat. <code>*</code> = toutes les colonnes.</p>
+      <pre>SELECT nom, prix
+FROM produits</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>FROM</summary>
+    <div class="clause-body">
+      <p>Indique la table (ou les tables, avec <code>JOIN</code>) sur laquelle porte la requête. Toujours la première clause exécutée.</p>
+      <pre>SELECT * FROM clients</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>WHERE</summary>
+    <div class="clause-body">
+      <p>Filtre les lignes individuelles <strong>avant</strong> tout regroupement. Ne peut pas contenir de fonction d'agrégat (<code>SUM</code>, <code>COUNT</code>...).</p>
+      <pre>SELECT * FROM produits
+WHERE prix &gt; 20000 AND stock &lt; 50</pre>
+      <p>Opérateurs utiles : <code>=</code> <code>&lt;&gt;</code> <code>&gt;</code> <code>&lt;</code> <code>AND</code> <code>OR</code> <code>NOT</code></p>
+    </div>
+  </details>
+
+  <details>
+    <summary>LIKE / IN / BETWEEN</summary>
+    <div class="clause-body">
+      <p><code>LIKE</code> filtre du texte avec des jokers : <code>%</code> (0 ou plusieurs caractères), <code>_</code> (1 caractère).</p>
+      <pre>WHERE nom LIKE 'K%'      -- commence par K
+WHERE ville IN ('Abidjan','Bouake')
+WHERE prix BETWEEN 10000 AND 50000</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>GROUP BY</summary>
+    <div class="clause-body">
+      <p>Regroupe les lignes ayant la même valeur pour calculer un agrégat par groupe. Toute colonne non agrégée du <code>SELECT</code> doit apparaître dans le <code>GROUP BY</code>.</p>
+      <pre>SELECT categorie, COUNT(*) AS nb
+FROM produits
+GROUP BY categorie</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Fonctions d'agrégation</summary>
+    <div class="clause-body">
+      <p><code>COUNT()</code> compte, <code>SUM()</code> additionne, <code>AVG()</code> fait la moyenne, <code>MIN()</code>/<code>MAX()</code> donnent le minimum/maximum. S'utilisent seules ou avec <code>GROUP BY</code>.</p>
+      <pre>SELECT AVG(prix) AS prix_moyen
+FROM produits</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>HAVING</summary>
+    <div class="clause-body">
+      <p>Filtre <strong>après</strong> le <code>GROUP BY</code>, sur le résultat des agrégats. C'est le "WHERE des groupes".</p>
+      <pre>SELECT client_id, COUNT(*) AS nb
+FROM commandes
+GROUP BY client_id
+HAVING COUNT(*) &gt; 1</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>ORDER BY</summary>
+    <div class="clause-body">
+      <p>Trie le résultat final. <code>ASC</code> = croissant (défaut), <code>DESC</code> = décroissant. Peut trier sur plusieurs colonnes.</p>
+      <pre>SELECT * FROM produits
+ORDER BY prix DESC, nom ASC</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>LIMIT</summary>
+    <div class="clause-body">
+      <p>Restreint le nombre de lignes retournées. S'exécute en tout dernier, souvent combiné à <code>ORDER BY</code> pour le "top N".</p>
+      <pre>SELECT * FROM produits
+ORDER BY prix DESC
+LIMIT 3</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>DISTINCT</summary>
+    <div class="clause-body">
+      <p>Supprime les doublons du résultat.</p>
+      <pre>SELECT DISTINCT ville FROM clients</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>JOIN (INNER / LEFT)</summary>
+    <div class="clause-body">
+      <p><code>JOIN ... ON</code> (= INNER JOIN) combine deux tables en ne gardant que les lignes qui correspondent des deux côtés. <code>LEFT JOIN</code> garde en plus toutes les lignes de la table de gauche, même sans correspondance (valeurs à <code>NULL</code>).</p>
+      <pre>SELECT c.nom, COUNT(cm.id) AS nb
+FROM clients c
+LEFT JOIN commandes cm ON c.id = cm.client_id
+GROUP BY c.nom</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Alias (AS)</summary>
+    <div class="clause-body">
+      <p>Renomme une colonne, une expression ou une table pour rendre la requête plus lisible ou pour l'auto-jointure.</p>
+      <pre>SELECT prix AS tarif
+FROM produits p1</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>CASE WHEN</summary>
+    <div class="clause-body">
+      <p>Crée une colonne conditionnelle, un peu comme un si/sinon. Peut porter sur une valeur simple ou sur un agrégat.</p>
+      <pre>SELECT nom,
+  CASE WHEN stock &lt; 20 THEN 'Stock faible'
+       ELSE 'Stock ok' END AS etat
+FROM produits</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Sous-requêtes (subqueries)</summary>
+    <div class="clause-body">
+      <p>Une requête imbriquée dans une autre : dans <code>WHERE</code> (filtre dynamique), dans <code>FROM</code> (table temporaire) ou dans <code>SELECT</code> (valeur calculée).</p>
+      <pre>-- dans WHERE
+SELECT * FROM produits
+WHERE prix &gt; (SELECT AVG(prix) FROM produits)
+
+-- corrélée : dépend de la ligne externe
+SELECT nom FROM employes e1
+WHERE salaire &gt; (
+  SELECT AVG(salaire) FROM employes e2
+  WHERE e2.departement_id = e1.departement_id)</pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>CTE (WITH ... AS)</summary>
+    <div class="clause-body">
+      <p>Une "Common Table Expression" nomme un résultat temporaire au-dessus de la requête principale, pour la rendre plus lisible qu'une sous-requête imbriquée. Réutilisable plusieurs fois dans la même requête.</p>
+      <pre>WITH ventes_client AS (
+  SELECT client_id, SUM(quantite*prix) AS total
+  FROM lignes_commande lc
+  JOIN produits p ON lc.produit_id = p.id
+  GROUP BY client_id
+)
+SELECT * FROM ventes_client
+WHERE total &gt; 50000</pre>
+    </div>
+  </details>
+</aside>
+
+</div>
+
+<footer>Astuce : la casse et l'ordre des colonnes n'ont pas d'importance, seul le résultat compte.</footer>
+</div>
+
+<!-- Chatbot : placé AVANT le script pour que les éléments existent au chargement -->
+<button class="chat-fab hidden" id="chatFab" title="Assistant SQL">💬</button>
+<div class="chat-panel hidden" id="chatPanel">
+  <div class="chat-head">
+    <h4>🤖 Assistant SQL</h4>
+    <button class="chat-close" id="chatClose">✕</button>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <div class="chat-msg hint">Pose-moi une question sur une clause SQL, sur l'exercice en cours, ou demande-moi pourquoi ta requête ne donne pas le bon résultat.</div>
+  </div>
+  <div class="chat-foot">
+    <textarea id="chatInput" placeholder="Ta question..." rows="1"></textarea>
+    <button class="chat-send" id="chatSend">Envoyer</button>
+  </div>
+</div>
+
+<script>
+const LEVELS = [
+  {id:'debutant', label:'Débutant', color:'#34d399'},
+  {id:'intermediaire', label:'Intermédiaire', color:'#22d3ee'},
+  {id:'avance', label:'Avancé', color:'#818cf8'},
+  {id:'expert', label:'Expert', color:'#f87171'}
+];
+
+const DBS = {
+  boutique: {
+    name:"Boutique en ligne", icon:"🛒",
+    desc:"Clients, produits, commandes et lignes de commande d'un e-commerce.",
+    tables:['clients','produits','commandes','lignes_commande'],
+    schema:`clients(id, nom, ville, date_inscription)
+produits(id, nom, categorie, prix, stock)
+commandes(id, client_id, date_commande, statut)
+lignes_commande(id, commande_id, produit_id, quantite)`,
+    sql:`
+CREATE TABLE clients (id INT, nom STRING, ville STRING, date_inscription STRING);
+INSERT INTO clients VALUES
+(1,'Kouassi Aya','Abidjan','2022-01-15'),(2,'Bamba Ibrahim','Bouake','2022-03-22'),
+(3,'Traore Fatou','Abidjan','2021-11-05'),(4,'Kone Yves','Yamoussoukro','2023-02-10'),
+(5,'Diallo Awa','Abidjan','2023-06-18'),(6,'Ouattara Seydou','San-Pedro','2022-09-30');
+CREATE TABLE produits (id INT, nom STRING, categorie STRING, prix NUMBER, stock INT);
+INSERT INTO produits VALUES
+(1,'Smartphone X','Electronique',250000,15),(2,'Casque Audio','Electronique',35000,40),
+(3,'T-shirt Coton','Vetement',8000,100),(4,'Chaussures Sport','Vetement',25000,30),
+(5,'Livre Cuisine','Livres',6000,50),(6,'Montre Connectee','Electronique',95000,20),
+(7,'Sac a Dos','Accessoires',18000,60),(8,'Parfum','Beaute',45000,25);
+CREATE TABLE commandes (id INT, client_id INT, date_commande STRING, statut STRING);
+INSERT INTO commandes VALUES
+(1,1,'2023-01-05','livree'),(2,2,'2023-01-10','livree'),(3,1,'2023-02-14','en cours'),
+(4,3,'2023-02-20','livree'),(5,4,'2023-03-01','annulee'),(6,5,'2023-03-15','livree'),
+(7,1,'2023-04-02','livree'),(8,6,'2023-04-10','en cours');
+CREATE TABLE lignes_commande (id INT, commande_id INT, produit_id INT, quantite INT);
+INSERT INTO lignes_commande VALUES
+(1,1,1,1),(2,1,2,2),(3,2,3,3),(4,3,4,1),(5,4,1,1),(6,4,5,2),
+(7,6,6,1),(8,6,7,1),(9,7,2,1),(10,7,8,1),(11,8,3,2),(12,8,4,1);`
+  },
+  rh: {
+    name:"Entreprise RH", icon:"🏢",
+    desc:"Départements, employés et projets d'une entreprise.",
+    tables:['departements','employes','projets'],
+    schema:`departements(id, nom, budget)
+employes(id, nom, poste, salaire, departement_id, date_embauche)
+projets(id, nom, departement_id, budget)`,
+    sql:`
+CREATE TABLE departements (id INT, nom STRING, budget NUMBER);
+INSERT INTO departements VALUES
+(1,'Informatique',5000000),(2,'Marketing',3000000),(3,'Finance',4000000),(4,'Ressources Humaines',2000000);
+CREATE TABLE employes (id INT, nom STRING, poste STRING, salaire NUMBER, departement_id INT, date_embauche STRING);
+INSERT INTO employes VALUES
+(1,'Yao Marie','Developpeur',450000,1,'2020-01-10'),(2,'Kouame Paul','Chef de Projet',650000,1,'2019-05-15'),
+(3,'Assi Nadia','Designer',380000,2,'2021-03-20'),(4,'Bationo Karim','Analyste',420000,3,'2020-11-01'),
+(5,'Coulibaly Awa','Comptable',400000,3,'2022-02-14'),(6,'Nguessan Eric','Recruteur',350000,4,'2021-07-01'),
+(7,'Soro Aicha','Developpeur',470000,1,'2022-09-10'),(8,'Zongo Ben','Marketeur',390000,2,'2020-06-05'),
+(9,'Kabore Lea','Responsable RH',600000,4,'2018-04-12'),(10,'Diabate Omar','Data Analyst',500000,1,'2023-01-20');
+CREATE TABLE projets (id INT, nom STRING, departement_id INT, budget NUMBER);
+INSERT INTO projets VALUES
+(1,'Refonte Site Web',1,1500000),(2,'Campagne Ete',2,800000),(3,'Audit Annuel',3,600000),
+(4,'Recrutement 2024',4,300000),(5,'App Mobile',1,2000000),(6,'Etude Marche',2,500000);`
+  }
+};
+
+const QUESTIONS = {
+boutique:{
+debutant:[
+["Affiche tous les clients.","SELECT * FROM clients"],
+["Affiche le nom et la ville des clients habitant à Abidjan.","SELECT nom, ville FROM clients WHERE ville = 'Abidjan'"],
+["Liste les produits dont le prix est supérieur à 20000.","SELECT * FROM produits WHERE prix > 20000"],
+["Affiche les noms des produits triés par prix croissant.","SELECT nom FROM produits ORDER BY prix ASC"],
+["Affiche les 3 produits les moins chers.","SELECT * FROM produits ORDER BY prix ASC LIMIT 3"],
+["Compte le nombre total de clients.","SELECT COUNT(*) AS total_clients FROM clients"],
+["Affiche tous les produits de la catégorie 'Electronique'.","SELECT * FROM produits WHERE categorie = 'Electronique'"],
+["Affiche les villes distinctes des clients.","SELECT DISTINCT ville FROM clients"],
+["Affiche les produits dont le prix est compris entre 10000 et 50000.","SELECT * FROM produits WHERE prix BETWEEN 10000 AND 50000"],
+["Affiche les clients dont le nom commence par 'K'.","SELECT * FROM clients WHERE nom LIKE 'K%'"],
+["Affiche les produits dont le stock est inférieur à 25.","SELECT * FROM produits WHERE stock < 25"],
+["Affiche les commandes annulées.","SELECT * FROM commandes WHERE statut = 'annulee'"],
+["Affiche les produits triés par nom par ordre alphabétique.","SELECT * FROM produits ORDER BY nom ASC"],
+["Affiche le produit le plus cher.","SELECT * FROM produits ORDER BY prix DESC LIMIT 1"],
+["Affiche les clients inscrits après le 1er janvier 2022.","SELECT * FROM clients WHERE date_inscription > '2022-01-01'"],
+["Affiche le nom des produits avec leur prix, en renommant la colonne prix en 'tarif'.","SELECT nom, prix AS tarif FROM produits"],
+["Compte le nombre de produits en catégorie 'Vetement'.","SELECT COUNT(*) AS nb FROM produits WHERE categorie = 'Vetement'"],
+["Affiche les commandes passées en 2023.","SELECT * FROM commandes WHERE date_commande LIKE '2023%'"],
+["Affiche le stock total de tous les produits.","SELECT SUM(stock) AS stock_total FROM produits"],
+["Affiche le prix moyen des produits.","SELECT AVG(prix) AS prix_moyen FROM produits"]
+],
+intermediaire:[
+["Affiche le nom du client et la date de chaque commande qu'il a passée.","SELECT clients.nom, commandes.date_commande FROM clients JOIN commandes ON clients.id = commandes.client_id"],
+["Affiche le nombre de commandes par client.","SELECT clients.nom, COUNT(commandes.id) AS nb_commandes FROM clients JOIN commandes ON clients.id = commandes.client_id GROUP BY clients.nom"],
+["Affiche le nom du produit et le total (quantite * prix) pour chaque ligne de commande.","SELECT produits.nom, lignes_commande.quantite * produits.prix AS total FROM lignes_commande JOIN produits ON lignes_commande.produit_id = produits.id"],
+["Affiche la somme des quantités vendues par produit.","SELECT produits.nom, SUM(lignes_commande.quantite) AS total_vendu FROM lignes_commande JOIN produits ON lignes_commande.produit_id = produits.id GROUP BY produits.nom"],
+["Affiche les commandes ayant le statut 'livree'.","SELECT * FROM commandes WHERE statut = 'livree'"],
+["Affiche le nombre de produits par catégorie.","SELECT categorie, COUNT(*) AS nb_produits FROM produits GROUP BY categorie"],
+["Affiche le prix moyen par catégorie de produit.","SELECT categorie, AVG(prix) AS prix_moyen FROM produits GROUP BY categorie"],
+["Affiche le nom du client et le statut de chaque commande.","SELECT clients.nom, commandes.statut FROM clients JOIN commandes ON clients.id = commandes.client_id"],
+["Affiche le nombre de lignes par commande (id de commande).","SELECT commande_id, COUNT(*) AS nb_lignes FROM lignes_commande GROUP BY commande_id"],
+["Affiche le stock total par catégorie de produit.","SELECT categorie, SUM(stock) AS stock_total FROM produits GROUP BY categorie"],
+["Affiche le nom des clients et le nombre de commandes livrées uniquement.","SELECT clients.nom, COUNT(commandes.id) AS nb FROM clients JOIN commandes ON clients.id = commandes.client_id WHERE commandes.statut = 'livree' GROUP BY clients.nom"],
+["Affiche le produit le plus vendu en quantité totale.","SELECT produits.nom, SUM(lignes_commande.quantite) AS total FROM lignes_commande JOIN produits ON lignes_commande.produit_id = produits.id GROUP BY produits.nom ORDER BY total DESC LIMIT 1"],
+["Affiche le prix maximum par catégorie de produit.","SELECT categorie, MAX(prix) AS prix_max FROM produits GROUP BY categorie"],
+["Affiche le nombre de commandes par statut.","SELECT statut, COUNT(*) AS nb FROM commandes GROUP BY statut"],
+["Affiche pour chaque client sa ville et le nombre de commandes passées.","SELECT clients.nom, clients.ville, COUNT(commandes.id) AS nb FROM clients JOIN commandes ON clients.id = commandes.client_id GROUP BY clients.nom, clients.ville"],
+["Affiche le nom du produit et la quantité totale commandée, triés par quantité décroissante.","SELECT produits.nom, SUM(lignes_commande.quantite) AS total FROM lignes_commande JOIN produits ON lignes_commande.produit_id = produits.id GROUP BY produits.nom ORDER BY total DESC"],
+["Affiche les clients et la date de leur commande, uniquement pour les commandes en cours.","SELECT clients.nom, commandes.date_commande FROM clients JOIN commandes ON clients.id = commandes.client_id WHERE commandes.statut = 'en cours'"],
+["Affiche le nombre de clients par ville.","SELECT ville, COUNT(*) AS nb_clients FROM clients GROUP BY ville"],
+["Affiche la quantité minimale et maximale commandée par produit.","SELECT produits.nom, MIN(lignes_commande.quantite) AS min_q, MAX(lignes_commande.quantite) AS max_q FROM lignes_commande JOIN produits ON lignes_commande.produit_id = produits.id GROUP BY produits.nom"],
+["Affiche le nombre de lignes de commande par produit.","SELECT produits.nom, COUNT(*) AS nb_lignes FROM lignes_commande JOIN produits ON lignes_commande.produit_id = produits.id GROUP BY produits.nom"]
+],
+avance:[
+["Affiche les clients ayant passé plus d'une commande.","SELECT clients.nom, COUNT(commandes.id) AS nb FROM clients JOIN commandes ON clients.id = commandes.client_id GROUP BY clients.nom HAVING COUNT(commandes.id) > 1"],
+["Affiche le total (quantite*prix) par commande.","SELECT lignes_commande.commande_id, SUM(lignes_commande.quantite * produits.prix) AS total FROM lignes_commande JOIN produits ON lignes_commande.produit_id = produits.id GROUP BY lignes_commande.commande_id"],
+["Affiche les produits qui n'ont jamais été commandés.","SELECT * FROM produits WHERE id NOT IN (SELECT produit_id FROM lignes_commande)"],
+["Affiche le nom des clients et le montant total dépensé (commandes livrées uniquement).","SELECT clients.nom, SUM(lignes_commande.quantite*produits.prix) AS total_depense FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id WHERE commandes.statut='livree' GROUP BY clients.nom"],
+["Affiche la catégorie de produit générant le plus de revenu total.","SELECT produits.categorie, SUM(lignes_commande.quantite*produits.prix) AS revenu FROM lignes_commande JOIN produits ON lignes_commande.produit_id=produits.id GROUP BY produits.categorie ORDER BY revenu DESC LIMIT 1"],
+["Affiche les clients dont le total des commandes livrées dépasse 50000.","SELECT clients.nom, SUM(lignes_commande.quantite*produits.prix) AS total FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id WHERE commandes.statut='livree' GROUP BY clients.nom HAVING SUM(lignes_commande.quantite*produits.prix) > 50000"],
+["Affiche les clients qui n'ont jamais passé de commande.","SELECT * FROM clients WHERE id NOT IN (SELECT client_id FROM commandes)"],
+["Affiche tous les clients avec le nombre de commandes, y compris ceux sans commande.","SELECT clients.nom, COUNT(commandes.id) AS nb FROM clients LEFT JOIN commandes ON clients.id = commandes.client_id GROUP BY clients.nom"],
+["Affiche les produits dont le prix est supérieur au prix moyen de leur catégorie.","SELECT p1.nom, p1.categorie, p1.prix FROM produits p1 WHERE p1.prix > (SELECT AVG(p2.prix) FROM produits p2 WHERE p2.categorie = p1.categorie)"],
+["Affiche les commandes contenant plus d'une ligne de produit.","SELECT commande_id, COUNT(*) AS nb FROM lignes_commande GROUP BY commande_id HAVING COUNT(*) > 1"],
+["Affiche le nom du client ayant passé la commande la plus ancienne.","SELECT clients.nom, commandes.date_commande FROM clients JOIN commandes ON clients.id = commandes.client_id ORDER BY commandes.date_commande ASC LIMIT 1"],
+["Affiche les catégories dont le prix moyen dépasse 30000.","SELECT categorie, AVG(prix) AS moyenne FROM produits GROUP BY categorie HAVING AVG(prix) > 30000"],
+["Affiche le nom des produits jamais commandés avec une quantité supérieure à 1.","SELECT DISTINCT produits.nom FROM produits WHERE produits.id NOT IN (SELECT produit_id FROM lignes_commande WHERE quantite > 1)"],
+["Affiche les clients avec leur ville et le montant total de toutes leurs commandes.","SELECT clients.nom, clients.ville, SUM(lignes_commande.quantite*produits.prix) AS total FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id GROUP BY clients.nom, clients.ville"],
+["Affiche les produits dont le stock est inférieur à la quantité moyenne commandée.","SELECT * FROM produits WHERE stock < (SELECT AVG(quantite) FROM lignes_commande)"],
+["Affiche le nombre de commandes par client, pour les clients ayant au moins 2 commandes livrées.","SELECT clients.nom, COUNT(commandes.id) AS nb FROM clients JOIN commandes ON clients.id = commandes.client_id WHERE commandes.statut = 'livree' GROUP BY clients.nom HAVING COUNT(commandes.id) >= 2"],
+["Affiche les commandes dont le montant total dépasse 40000.","SELECT lignes_commande.commande_id, SUM(lignes_commande.quantite*produits.prix) AS total FROM lignes_commande JOIN produits ON lignes_commande.produit_id=produits.id GROUP BY lignes_commande.commande_id HAVING SUM(lignes_commande.quantite*produits.prix) > 40000"],
+["Affiche les clients d'Abidjan ayant au moins une commande livrée.","SELECT DISTINCT clients.nom FROM clients JOIN commandes ON clients.id = commandes.client_id WHERE clients.ville = 'Abidjan' AND commandes.statut = 'livree'"],
+["Affiche le nombre de produits distincts commandés par chaque client.","SELECT clients.nom, COUNT(DISTINCT lignes_commande.produit_id) AS nb_produits FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id GROUP BY clients.nom"]
+],
+expert:[
+["Affiche le client ayant le plus dépensé (commandes livrées uniquement).","SELECT clients.nom, SUM(lignes_commande.quantite*produits.prix) AS total FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id WHERE commandes.statut='livree' GROUP BY clients.nom ORDER BY total DESC LIMIT 1"],
+["Affiche les produits dont le prix est supérieur à la moyenne des prix de tous les produits.","SELECT * FROM produits WHERE prix > (SELECT AVG(prix) FROM produits)"],
+["Pour chaque catégorie, affiche le produit le plus cher.","SELECT p1.categorie, p1.nom, p1.prix FROM produits p1 WHERE p1.prix = (SELECT MAX(p2.prix) FROM produits p2 WHERE p2.categorie = p1.categorie)"],
+["Affiche les clients qui n'ont jamais eu de commande annulée.","SELECT * FROM clients WHERE id NOT IN (SELECT client_id FROM commandes WHERE statut='annulee')"],
+["Classe les clients par montant total dépensé décroissant (commandes livrées).","SELECT clients.nom, SUM(lignes_commande.quantite*produits.prix) AS total FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id WHERE commandes.statut='livree' GROUP BY clients.nom ORDER BY total DESC"],
+["Compte le nombre de clients distincts ayant commandé un produit 'Electronique'.","SELECT COUNT(DISTINCT clients.id) AS nb FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id WHERE produits.categorie='Electronique'"],
+["Affiche le nom du client et 'VIP' si son total dépensé (livrées) dépasse 60000, sinon 'Standard'.","SELECT clients.nom, CASE WHEN SUM(lignes_commande.quantite*produits.prix) > 60000 THEN 'VIP' ELSE 'Standard' END AS profil FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id WHERE commandes.statut='livree' GROUP BY clients.nom"],
+["Affiche le ou les produits ayant le prix le plus élevé de toute la table.","SELECT * FROM produits WHERE prix = (SELECT MAX(prix) FROM produits)"],
+["Affiche pour chaque client le nombre de commandes annulées, y compris 0.","SELECT clients.nom, COUNT(commandes.id) AS nb_annulees FROM clients LEFT JOIN commandes ON clients.id = commandes.client_id AND commandes.statut = 'annulee' GROUP BY clients.nom"],
+["Affiche les produits dont le prix est inférieur au prix minimum de la catégorie 'Electronique'.","SELECT * FROM produits WHERE prix < (SELECT MIN(prix) FROM produits WHERE categorie = 'Electronique')"],
+["Affiche le pourcentage que représente chaque catégorie dans le nombre total de produits.","SELECT categorie, COUNT(*) * 100.0 / (SELECT COUNT(*) FROM produits) AS pourcentage FROM produits GROUP BY categorie"],
+["Affiche les clients ayant commandé au moins 2 produits électroniques différents.","SELECT clients.nom, COUNT(DISTINCT produits.id) AS nb_electro FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id WHERE produits.categorie='Electronique' GROUP BY clients.nom HAVING COUNT(DISTINCT produits.id) >= 2"],
+["Affiche l'écart entre le prix le plus cher et le prix le moins cher par catégorie.","SELECT categorie, MAX(prix) - MIN(prix) AS ecart FROM produits GROUP BY categorie"],
+["Affiche le nom du client, sa ville, et son nombre de commandes livrées, pour Abidjan uniquement, trié par nombre décroissant.","SELECT clients.nom, clients.ville, COUNT(commandes.id) AS nb FROM clients JOIN commandes ON clients.id=commandes.client_id WHERE clients.ville='Abidjan' AND commandes.statut='livree' GROUP BY clients.nom, clients.ville ORDER BY nb DESC"],
+["Affiche pour chaque produit sa part (%) dans le revenu total généré par sa catégorie.","SELECT p1.nom, p1.categorie, (SELECT SUM(lc.quantite*p1.prix) FROM lignes_commande lc WHERE lc.produit_id = p1.id) * 100.0 / (SELECT SUM(lc2.quantite*p2.prix) FROM lignes_commande lc2 JOIN produits p2 ON lc2.produit_id = p2.id WHERE p2.categorie = p1.categorie) AS part_pct FROM produits p1"],
+["Affiche les clients dont le montant dépensé (livrées) dépasse la moyenne des montants dépensés par tous les clients.","SELECT clients.nom, SUM(lignes_commande.quantite*produits.prix) AS total FROM clients JOIN commandes ON clients.id=commandes.client_id JOIN lignes_commande ON commandes.id=lignes_commande.commande_id JOIN produits ON lignes_commande.produit_id=produits.id WHERE commandes.statut='livree' GROUP BY clients.nom HAVING SUM(lignes_commande.quantite*produits.prix) > (SELECT AVG(t.total) FROM (SELECT SUM(lc.quantite*p.prix) AS total FROM commandes c JOIN lignes_commande lc ON c.id=lc.commande_id JOIN produits p ON lc.produit_id=p.id WHERE c.statut='livree' GROUP BY c.client_id) AS t)"],
+["Affiche le nom des produits et 'Stock faible' si stock < 20 sinon 'Stock ok'.","SELECT nom, CASE WHEN stock < 20 THEN 'Stock faible' ELSE 'Stock ok' END AS etat_stock FROM produits"],
+["Affiche les 2 clients ayant le plus grand nombre de commandes livrées.","SELECT clients.nom, COUNT(commandes.id) AS nb FROM clients JOIN commandes ON clients.id=commandes.client_id WHERE commandes.statut='livree' GROUP BY clients.nom ORDER BY nb DESC LIMIT 2"],
+["Affiche le produit le plus commandé (en nombre de lignes) dans la catégorie 'Electronique'.","SELECT produits.nom, COUNT(*) AS nb_lignes FROM lignes_commande JOIN produits ON lignes_commande.produit_id = produits.id WHERE produits.categorie = 'Electronique' GROUP BY produits.nom ORDER BY nb_lignes DESC LIMIT 1"]
+]
+},
+rh:{
+debutant:[
+["Affiche tous les employés.","SELECT * FROM employes"],
+["Affiche le nom et le poste des employés dont le salaire dépasse 450000.","SELECT nom, poste FROM employes WHERE salaire > 450000"],
+["Liste les départements triés par budget décroissant.","SELECT * FROM departements ORDER BY budget DESC"],
+["Affiche les 3 employés les mieux payés.","SELECT * FROM employes ORDER BY salaire DESC LIMIT 3"],
+["Compte le nombre total d'employés.","SELECT COUNT(*) AS total_employes FROM employes"],
+["Affiche les employés embauchés après le 1er janvier 2021.","SELECT * FROM employes WHERE date_embauche > '2021-01-01'"],
+["Affiche les employés dont le poste est 'Developpeur'.","SELECT * FROM employes WHERE poste = 'Developpeur'"],
+["Affiche les postes distincts présents dans l'entreprise.","SELECT DISTINCT poste FROM employes"],
+["Affiche les employés dont le salaire est compris entre 400000 et 500000.","SELECT * FROM employes WHERE salaire BETWEEN 400000 AND 500000"],
+["Affiche les employés triés par date d'embauche croissante.","SELECT * FROM employes ORDER BY date_embauche ASC"],
+["Affiche les employés dont le nom commence par 'K'.","SELECT * FROM employes WHERE nom LIKE 'K%'"],
+["Affiche le département ayant le plus petit budget.","SELECT * FROM departements ORDER BY budget ASC LIMIT 1"],
+["Affiche tous les projets dont le budget dépasse 700000.","SELECT * FROM projets WHERE budget > 700000"],
+["Compte le nombre de projets.","SELECT COUNT(*) AS nb_projets FROM projets"],
+["Affiche le salaire moyen de tous les employés.","SELECT AVG(salaire) AS moyenne FROM employes"],
+["Affiche le nom des employés avec leur salaire renommé 'remuneration'.","SELECT nom, salaire AS remuneration FROM employes"],
+["Affiche les employés embauchés avant 2020.","SELECT * FROM employes WHERE date_embauche < '2020-01-01'"],
+["Affiche le budget total de tous les départements.","SELECT SUM(budget) AS budget_total FROM departements"],
+["Affiche l'employé le moins payé.","SELECT * FROM employes ORDER BY salaire ASC LIMIT 1"],
+["Affiche les projets triés par budget décroissant.","SELECT * FROM projets ORDER BY budget DESC"]
+],
+intermediaire:[
+["Affiche le nom de l'employé et le nom de son département.","SELECT employes.nom, departements.nom AS departement FROM employes JOIN departements ON employes.departement_id = departements.id"],
+["Affiche le nombre d'employés par département.","SELECT departements.nom, COUNT(employes.id) AS nb_employes FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom"],
+["Affiche le salaire moyen par département.","SELECT departements.nom, AVG(employes.salaire) AS salaire_moyen FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom"],
+["Affiche les projets avec le nom de leur département.","SELECT projets.nom, departements.nom AS departement FROM projets JOIN departements ON projets.departement_id = departements.id"],
+["Affiche le budget total des projets par département.","SELECT departements.nom, SUM(projets.budget) AS budget_total FROM departements JOIN projets ON departements.id = projets.departement_id GROUP BY departements.nom"],
+["Affiche le nombre de projets par département.","SELECT departements.nom, COUNT(projets.id) AS nb FROM departements JOIN projets ON departements.id = projets.departement_id GROUP BY departements.nom"],
+["Affiche le salaire maximum par département.","SELECT departements.nom, MAX(employes.salaire) AS salaire_max FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom"],
+["Affiche le nom de l'employé et le nom des projets de son département.","SELECT employes.nom, projets.nom AS projet FROM employes JOIN projets ON employes.departement_id = projets.departement_id"],
+["Affiche le nombre d'employés embauchés par date d'embauche.","SELECT date_embauche, COUNT(*) AS nb FROM employes GROUP BY date_embauche"],
+["Affiche le salaire minimum par département.","SELECT departements.nom, MIN(employes.salaire) AS salaire_min FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom"],
+["Affiche le nom du département et le budget moyen de ses projets.","SELECT departements.nom, AVG(projets.budget) AS budget_moyen FROM departements JOIN projets ON departements.id = projets.departement_id GROUP BY departements.nom"],
+["Affiche les employés et le budget de leur département.","SELECT employes.nom, departements.budget FROM employes JOIN departements ON employes.departement_id = departements.id"],
+["Affiche le nombre d'employés 'Developpeur' par département.","SELECT departements.nom, COUNT(employes.id) AS nb FROM departements JOIN employes ON departements.id = employes.departement_id WHERE employes.poste = 'Developpeur' GROUP BY departements.nom"],
+["Affiche la somme des salaires par département.","SELECT departements.nom, SUM(employes.salaire) AS masse_salariale FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom"],
+["Affiche les employés et leur département, triés par salaire décroissant.","SELECT employes.nom, departements.nom AS departement, employes.salaire FROM employes JOIN departements ON employes.departement_id = departements.id ORDER BY employes.salaire DESC"],
+["Affiche le nombre de postes distincts par département.","SELECT departements.nom, COUNT(DISTINCT employes.poste) AS nb_postes FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom"],
+["Affiche les projets dont le budget dépasse 500000, avec le nom du département.","SELECT projets.nom, departements.nom AS departement FROM projets JOIN departements ON projets.departement_id = departements.id WHERE projets.budget > 500000"],
+["Affiche le nombre d'employés embauchés avant 2021 par département.","SELECT departements.nom, COUNT(employes.id) AS nb FROM departements JOIN employes ON departements.id = employes.departement_id WHERE employes.date_embauche < '2021-01-01' GROUP BY departements.nom"],
+["Affiche le nombre d'employés et de projets par département.","SELECT departements.nom, COUNT(DISTINCT employes.id) AS nb_employes, COUNT(DISTINCT projets.id) AS nb_projets FROM departements LEFT JOIN employes ON departements.id=employes.departement_id LEFT JOIN projets ON departements.id=projets.departement_id GROUP BY departements.nom"],
+["Affiche les employés du département 'Informatique' uniquement.","SELECT employes.* FROM employes JOIN departements ON employes.departement_id = departements.id WHERE departements.nom = 'Informatique'"]
+],
+avance:[
+["Affiche les départements ayant plus de 2 employés.","SELECT departements.nom, COUNT(employes.id) AS nb FROM departements JOIN employes ON departements.id=employes.departement_id GROUP BY departements.nom HAVING COUNT(employes.id) > 2"],
+["Affiche le département dont le salaire moyen est le plus élevé.","SELECT departements.nom, AVG(employes.salaire) AS moyenne FROM departements JOIN employes ON departements.id=employes.departement_id GROUP BY departements.nom ORDER BY moyenne DESC LIMIT 1"],
+["Affiche les employés dont le salaire est supérieur au salaire moyen de l'entreprise.","SELECT * FROM employes WHERE salaire > (SELECT AVG(salaire) FROM employes)"],
+["Affiche les départements dont le budget total des projets dépasse le budget du département.","SELECT departements.nom FROM departements JOIN projets ON departements.id = projets.departement_id GROUP BY departements.nom, departements.budget HAVING SUM(projets.budget) > departements.budget"],
+["Affiche l'employé ayant la date d'embauche la plus ancienne.","SELECT * FROM employes ORDER BY date_embauche ASC LIMIT 1"],
+["Affiche le nombre de projets par département, y compris les départements sans projet.","SELECT departements.nom, COUNT(projets.id) AS nb_projets FROM departements LEFT JOIN projets ON departements.id = projets.departement_id GROUP BY departements.nom"],
+["Affiche les départements qui n'ont aucun employé.","SELECT * FROM departements WHERE id NOT IN (SELECT departement_id FROM employes)"],
+["Affiche les employés dont le salaire dépasse 400000 et embauchés après 2020.","SELECT * FROM employes WHERE salaire > 400000 AND date_embauche > '2020-12-31'"],
+["Affiche pour chaque département le nombre d'employés et de projets, y compris 0.","SELECT departements.nom, COUNT(DISTINCT employes.id) AS nb_emp, COUNT(DISTINCT projets.id) AS nb_proj FROM departements LEFT JOIN employes ON departements.id=employes.departement_id LEFT JOIN projets ON departements.id=projets.departement_id GROUP BY departements.nom"],
+["Affiche les départements dont le salaire moyen dépasse 450000.","SELECT departements.nom, AVG(employes.salaire) AS moyenne FROM departements JOIN employes ON departements.id=employes.departement_id GROUP BY departements.nom HAVING AVG(employes.salaire) > 450000"],
+["Affiche les employés dont le salaire est supérieur au salaire moyen de leur propre département.","SELECT e1.nom, e1.salaire FROM employes e1 WHERE e1.salaire > (SELECT AVG(e2.salaire) FROM employes e2 WHERE e2.departement_id = e1.departement_id)"],
+["Affiche le projet ayant le plus grand budget par département.","SELECT p1.nom, p1.budget, p1.departement_id FROM projets p1 WHERE p1.budget = (SELECT MAX(p2.budget) FROM projets p2 WHERE p2.departement_id = p1.departement_id)"],
+["Affiche le nombre d'employés embauchés avant 2021.","SELECT COUNT(*) AS nb FROM employes WHERE date_embauche < '2021-01-01'"],
+["Affiche les employés les mieux payés de chaque département.","SELECT e1.nom, e1.salaire, e1.departement_id FROM employes e1 WHERE e1.salaire = (SELECT MAX(e2.salaire) FROM employes e2 WHERE e2.departement_id = e1.departement_id)"],
+["Affiche les départements et leur budget, ainsi que la marge après salaires.","SELECT departements.nom, departements.budget - SUM(employes.salaire) AS marge FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom, departements.budget"],
+["Affiche les employés d'un département dont le budget dépasse 4000000.","SELECT employes.* FROM employes JOIN departements ON employes.departement_id = departements.id WHERE departements.budget > 4000000"],
+["Affiche le nombre d'employés par poste, pour les postes ayant plus d'un employé.","SELECT poste, COUNT(*) AS nb FROM employes GROUP BY poste HAVING COUNT(*) > 1"],
+["Affiche les 3 employés ayant le plus d'ancienneté.","SELECT * FROM employes ORDER BY date_embauche ASC LIMIT 3"],
+["Affiche les départements ayant un projet dont le budget dépasse 1000000.","SELECT DISTINCT departements.nom FROM departements JOIN projets ON departements.id = projets.departement_id WHERE projets.budget > 1000000"],
+["Affiche les employés dont le poste contient 'Data'.","SELECT * FROM employes WHERE poste LIKE '%Data%'"]
+],
+expert:[
+["Pour chaque département, affiche le nom et le salaire de l'employé le mieux payé.","SELECT e1.nom, e1.salaire, e1.departement_id FROM employes e1 WHERE e1.salaire = (SELECT MAX(e2.salaire) FROM employes e2 WHERE e2.departement_id = e1.departement_id)"],
+["Affiche les départements dont le budget dépasse la moyenne des budgets de tous les départements.","SELECT * FROM departements WHERE budget > (SELECT AVG(budget) FROM departements)"],
+["Affiche le nom des employés et 'Senior' si salaire >= 500000 sinon 'Junior'.","SELECT nom, CASE WHEN salaire >= 500000 THEN 'Senior' ELSE 'Junior' END AS niveau FROM employes"],
+["Affiche les départements qui n'ont aucun projet.","SELECT * FROM departements WHERE id NOT IN (SELECT departement_id FROM projets)"],
+["Affiche le ratio budget projets / budget département par département ayant des projets.","SELECT departements.nom, SUM(projets.budget) / departements.budget AS ratio FROM departements JOIN projets ON departements.id = projets.departement_id GROUP BY departements.nom, departements.budget"],
+["Affiche les employés dont le salaire dépasse la moyenne de leur propre département.","SELECT e1.nom, e1.salaire, e1.departement_id FROM employes e1 WHERE e1.salaire > (SELECT AVG(e2.salaire) FROM employes e2 WHERE e2.departement_id = e1.departement_id)"],
+["Affiche pour chaque employé sa part (%) dans la masse salariale de son département.","SELECT e1.nom, (e1.salaire * 100.0 / (SELECT SUM(e2.salaire) FROM employes e2 WHERE e2.departement_id = e1.departement_id)) AS part_pct FROM employes e1"],
+["Affiche le département ayant le plus grand écart entre salaire max et min.","SELECT departements.nom, MAX(employes.salaire) - MIN(employes.salaire) AS ecart FROM departements JOIN employes ON departements.id=employes.departement_id GROUP BY departements.nom ORDER BY ecart DESC LIMIT 1"],
+["Affiche l'employé ou les employés ayant le salaire le plus élevé de l'entreprise.","SELECT * FROM employes WHERE salaire = (SELECT MAX(salaire) FROM employes)"],
+["Affiche les départements dont la masse salariale dépasse 50% de leur budget.","SELECT departements.nom FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom, departements.budget HAVING SUM(employes.salaire) > departements.budget * 0.5"],
+["Affiche le nom de chaque employé et sa comparaison à la moyenne générale des salaires.","SELECT nom, CASE WHEN salaire > (SELECT AVG(salaire) FROM employes) THEN 'Au-dessus de la moyenne' ELSE 'En dessous' END AS comparaison FROM employes"],
+["Affiche les départements et le nombre d'employés gagnant plus de 450000, y compris 0.","SELECT departements.nom, COUNT(employes.id) AS nb FROM departements LEFT JOIN employes ON departements.id = employes.departement_id AND employes.salaire > 450000 GROUP BY departements.nom"],
+["Affiche les 2 départements ayant la masse salariale totale la plus élevée.","SELECT departements.nom, SUM(employes.salaire) AS masse FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom ORDER BY masse DESC LIMIT 2"],
+["Affiche les employés dont le salaire dépasse la moyenne des moyennes de tous les départements.","SELECT * FROM employes WHERE salaire > (SELECT AVG(m.moyenne) FROM (SELECT AVG(salaire) AS moyenne FROM employes GROUP BY departement_id) AS m)"],
+["Affiche pour chaque département le nombre d'employés gagnant plus de 400000.","SELECT departements.nom, COUNT(employes.id) AS nb FROM departements JOIN employes ON departements.id = employes.departement_id WHERE employes.salaire > 400000 GROUP BY departements.nom"],
+["Affiche les projets dont le budget dépasse la moyenne des budgets de projets de leur département.","SELECT p1.nom, p1.budget FROM projets p1 WHERE p1.budget > (SELECT AVG(p2.budget) FROM projets p2 WHERE p2.departement_id = p1.departement_id)"],
+["Affiche le nom du département, son budget, et le pourcentage du budget non utilisé par les salaires.","SELECT departements.nom, departements.budget, (departements.budget - SUM(employes.salaire)) * 100.0 / departements.budget AS pct_restant FROM departements JOIN employes ON departements.id = employes.departement_id GROUP BY departements.nom, departements.budget"],
+["Affiche l'employé le plus ancien de chaque département.","SELECT e1.nom, e1.date_embauche, e1.departement_id FROM employes e1 WHERE e1.date_embauche = (SELECT MIN(e2.date_embauche) FROM employes e2 WHERE e2.departement_id = e1.departement_id)"],
+["Affiche les départements où aucun employé ne gagne 350000 ou moins.","SELECT departements.nom FROM departements WHERE departements.id NOT IN (SELECT departement_id FROM employes WHERE salaire <= 350000)"],
+["Affiche le nom de l'employé, son département, et son rang salarial au sein du département.","SELECT e1.nom, e1.departement_id, (SELECT COUNT(*) FROM employes e2 WHERE e2.departement_id = e1.departement_id AND e2.salaire > e1.salaire) + 1 AS rang FROM employes e1"]
+]
+}
+};
+
+let state = { db:null, level:null, qIndex:0, score:0, answered:false, order:[], lastWasCorrect:false };
+
+/* =====================================================
+   THÈMES + FOND "CYBER FIREFLIES"
+   ===================================================== */
+const THEMES = [
+  {bg:"#050816", color:"#00ffff", color2:"#a78bfa"},
+  {bg:"#120024", color:"#ff00ff", color2:"#22d3ee"},
+  {bg:"#001a10", color:"#00ff88", color2:"#22d3ee"},
+  {bg:"#1b0900", color:"#ff7700", color2:"#fbbf24"},
+  {bg:"#000814", color:"#00aaff", color2:"#a78bfa"},
+  {bg:"#220000", color:"#ff3333", color2:"#ff7700"}
+];
+let currentTheme = 0;
+
+function hexToRgb(h){
+  const n = parseInt(h.slice(1), 16);
+  return [(n>>16)&255, (n>>8)&255, n&255].join(',');
+}
+function applyTheme(i){
+  const t = THEMES[i];
+  const r = document.documentElement.style;
+  r.setProperty('--bg', t.bg);
+  r.setProperty('--accent', t.color);
+  r.setProperty('--accent-rgb', hexToRgb(t.color));
+  r.setProperty('--accent2', t.color2);
+  r.setProperty('--accent2-rgb', hexToRgb(t.color2));
+}
+function nextTheme(){
+  currentTheme = (currentTheme + 1) % THEMES.length;
+  applyTheme(currentTheme);
+  particles.forEach(p => { p.shape = Math.floor(Math.random()*4); });
+}
+
+const canvas = document.getElementById('fx');
+const ctx = canvas.getContext('2d');
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W = 0, H = 0;
+function resizeCanvas(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  particles.forEach(p => {
+    if(p.x > W) p.x = Math.random()*W;
+    if(p.y > H) p.y = Math.random()*H;
+  });
+}
+
+const mouse = { x: window.innerWidth/2, y: window.innerHeight/2 };
+window.addEventListener('pointermove', e => { mouse.x = e.clientX; mouse.y = e.clientY; }, {passive:true});
+
+class Particle{
+  constructor(){ this.reset(); }
+  reset(){
+    this.x = Math.random()*W;
+    this.y = Math.random()*H;
+    this.size = Math.random()*4 + 2;
+    const k = reduceMotion ? 0.15 : 1;
+    this.speedX = (Math.random()-0.5)*2*k;
+    this.speedY = (Math.random()-0.5)*2*k;
+    this.shape = Math.floor(Math.random()*4);
+  }
+  draw(){
+    const c = THEMES[currentTheme].color;
+    ctx.fillStyle = c;
+    ctx.shadowColor = c;
+    ctx.shadowBlur = 20;
+    switch(this.shape){
+      case 0:
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+        break;
+      case 1:
+        ctx.fillRect(this.x-this.size, this.y-this.size, this.size*2, this.size*2);
+        break;
+      case 2:
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y-this.size);
+        ctx.lineTo(this.x+this.size, this.y+this.size);
+        ctx.lineTo(this.x-this.size, this.y+this.size);
+        ctx.closePath();
+        ctx.fill();
+        break;
+      case 3:
+        ctx.beginPath();
+        for(let i=0;i<6;i++){
+          const angle = Math.PI/3*i;
+          const xx = this.x + this.size*Math.cos(angle);
+          const yy = this.y + this.size*Math.sin(angle);
+          if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+        }
+        ctx.closePath();
+        ctx.fill();
+        break;
+    }
+  }
+  update(){
+    this.x += this.speedX;
+    this.y += this.speedY;
+    const dx = mouse.x - this.x;
+    const dy = mouse.y - this.y;
+    const distance = Math.sqrt(dx*dx + dy*dy);
+    if(distance < 150){
+      this.x -= dx*0.01;
+      this.y -= dy*0.01;
+    }
+    if(this.x < 0 || this.x > W) this.speedX *= -1;
+    if(this.y < 0 || this.y > H) this.speedY *= -1;
+    this.draw();
+  }
+}
+
+const particles = [];
+function drawGrid(){
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = THEMES[currentTheme].color + "22";
+  ctx.lineWidth = 1;
+  for(let x=0; x<W; x+=60){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0; y<H; y+=60){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+}
+function connectParticles(){
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = THEMES[currentTheme].color + "25";
+  ctx.lineWidth = 1;
+  for(let a=0; a<particles.length; a++){
+    for(let b=a+1; b<particles.length; b++){
+      const dx = particles[a].x - particles[b].x;
+      const dy = particles[a].y - particles[b].y;
+      if(dx*dx + dy*dy < 14400){ // 120px
+        ctx.beginPath();
+        ctx.moveTo(particles[a].x, particles[a].y);
+        ctx.lineTo(particles[b].x, particles[b].y);
+        ctx.stroke();
+      }
+    }
+  }
+}
+function animate(){
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();
+  particles.forEach(p => p.update());
+  connectParticles();
+  requestAnimationFrame(animate);
+}
+
+resizeCanvas();
+const PARTICLE_COUNT = window.innerWidth < 700 ? 90 : 180;
+for(let i=0;i<PARTICLE_COUNT;i++) particles.push(new Particle());
+window.addEventListener('resize', resizeCanvas);
+applyTheme(currentTheme);
+animate();
+
+/* Clic sur le fond (ou logo / bouton Thème) = changement d'univers */
+document.addEventListener('click', e => {
+  if(e.target.closest('button,a,textarea,input,summary,details,.card,.panel,.sql-ref,.chat-panel,.levels,.schema,.badge,footer')) return;
+  nextTheme();
+});
+document.getElementById('themeBtn').onclick = nextTheme;
+
+/* =====================================================
+   APPLICATION
+   ===================================================== */
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function show(id){
+  ['screen-db','screen-level','screen-quiz','screen-recap'].forEach(s=>{
+    const el = document.getElementById(s);
+    const active = s===id;
+    el.classList.toggle('hidden', !active);
+    if(active){ el.classList.remove('screen'); void el.offsetWidth; el.classList.add('screen'); }
+  });
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function fireConfetti(){
+  const layer = document.getElementById('confetti-layer');
+  const t = THEMES[currentTheme];
+  const colors = [t.color, t.color2, '#f472b6', '#34d399', '#fbbf24'];
+  for(let i=0;i<36;i++){
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const size = 6 + Math.random()*6;
+    p.style.width = size+'px';
+    p.style.height = (size*0.4)+'px';
+    p.style.left = Math.random()*100+'vw';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDuration = (1.6 + Math.random()*1.4)+'s';
+    p.style.opacity = 0.7 + Math.random()*0.3;
+    layer.appendChild(p);
+    setTimeout(()=>p.remove(), 3200);
+  }
+}
+
+function initDbGrid(){
+  const grid = document.getElementById('dbGrid');
+  grid.innerHTML = '';
+  Object.entries(DBS).forEach(([key,db])=>{
+    const el = document.createElement('div');
+    el.className='card';
+    el.innerHTML = `<div class="icon">${db.icon}</div><h3>${db.name}</h3><p>${db.desc}</p>`;
+    el.onclick = ()=>selectDb(key);
+    grid.appendChild(el);
+  });
+}
+
+function selectDb(key){
+  state.db = key;
+  const db = DBS[key];
+  document.getElementById('levelTitle').textContent = db.icon + '  ' + db.name;
+  document.getElementById('schemaView').textContent = db.schema;
+  const grid = document.getElementById('levelGrid');
+  grid.innerHTML = '';
+  LEVELS.forEach(lv=>{
+    const n = QUESTIONS[key][lv.id].length;
+    const btn = document.createElement('button');
+    btn.className='level-btn';
+    btn.innerHTML = `<div><span class="dot" style="background:${lv.color};color:${lv.color}"></span><strong>${lv.label}</strong></div><div style="color:var(--muted);font-size:12px;margin-top:6px;">${n} questions</div>`;
+    btn.onclick = ()=>startLevel(lv.id);
+    grid.appendChild(btn);
+  });
+  resetDB(key);
+  document.getElementById('statusBadge').classList.remove('hidden');
+  document.getElementById('statusBadge').textContent = db.name;
+  show('screen-level');
+}
+
+function resetDB(key){
+  const db = DBS[key];
+  db.tables.forEach(t=>{ try{ alasql('DROP TABLE IF EXISTS ' + t); }catch(e){} });
+  alasql(db.sql);
+}
+
+function renderDataTables(){
+  const db = DBS[state.db];
+  resetDB(state.db);
+  const container = document.getElementById('dataTables');
+  container.innerHTML = '';
+  db.tables.forEach(t=>{
+    const rows = alasql('SELECT * FROM ' + t);
+    const h = document.createElement('div');
+    h.innerHTML = `<h4>${t}</h4><div class="tablewrap">${toTable(rows)}</div>`;
+    container.appendChild(h);
+  });
+}
+
+function startLevel(levelId){
+  state.level = levelId;
+  state.qIndex = 0;
+  state.score = 0;
+  state.answered = false;
+  const qs = QUESTIONS[state.db][levelId];
+  state.order = shuffle(qs.map((_,i)=>i));
+  resetDB(state.db);
+  show('screen-quiz');
+  document.getElementById('dataPanel').open = false;
+  renderDataTables();
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const qs = QUESTIONS[state.db][state.level];
+  const realIndex = state.order[state.qIndex];
+  const [qText] = qs[realIndex];
+  const lv = LEVELS.find(l=>l.id===state.level);
+  const panel = document.querySelector('#screen-quiz .panel');
+  panel.classList.remove('flash-ok','flash-ko','shake');
+  document.getElementById('quizMeta').innerHTML = `<span style="color:${lv.color}">●</span> ${lv.label} — Question ${state.qIndex+1}/${qs.length} <span style="opacity:.6">(ordre aléatoire)</span>`;
+  document.getElementById('quizScore').textContent = `Score: ${state.score}/${qs.length}`;
+  document.getElementById('progressFill').style.width = (state.qIndex/qs.length*100)+'%';
+  document.getElementById('questionText').textContent = qText;
+  document.getElementById('sqlInput').value = '';
+  document.getElementById('feedback').innerHTML = '';
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('retryQBtn').classList.add('hidden');
+  document.getElementById('runBtn').disabled = false;
+  state.answered = false;
+  state.lastWasCorrect = false;
+}
+
+function normVal(v){
+  if(v===null || v===undefined) return 'NULL';
+  if(typeof v === 'number') return String(Math.round(v*1e6)/1e6);
+  return String(v);
+}
+function normalizeRows(rows){
+  return rows.map(r=>Object.values(r).map(normVal).sort().join('|')).sort();
+}
+function sameResult(a,b){
+  const na=normalizeRows(a), nb=normalizeRows(b);
+  return JSON.stringify(na)===JSON.stringify(nb);
+}
+function cellHtml(v){
+  if(v===null || v===undefined) return '<em style="opacity:.6">NULL</em>';
+  return escapeHtml(v);
+}
+function toTable(rows){
+  if(!rows.length) return '<em style="color:var(--muted)">Aucune ligne</em>';
+  const cols = Object.keys(rows[0]);
+  let h = '<table class="res"><tr>'+cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('')+'</tr>';
+  rows.slice(0,20).forEach(r=>{ h+='<tr>'+cols.map(c=>`<td>${cellHtml(r[c])}</td>`).join('')+'</tr>'; });
+  h+='</table>';
+  if(rows.length>20) h+=`<div style="color:var(--muted);font-size:11px;margin-top:4px;">+ ${rows.length-20} lignes...</div>`;
+  return h;
+}
+
+document.getElementById('runBtn').onclick = ()=>{
+  if(state.answered) return;
+  const userSql = document.getElementById('sqlInput').value.trim();
+  const qs = QUESTIONS[state.db][state.level];
+  const realIndex = state.order[state.qIndex];
+  const [, correctSql] = qs[realIndex];
+  const fb = document.getElementById('feedback');
+  const panel = document.querySelector('#screen-quiz .panel');
+  if(!userSql){ return; }
+  resetDB(state.db);
+  let userRes, correctRes, error=null;
+  try{ userRes = alasql(userSql); if(!Array.isArray(userRes)) throw new Error("La requête doit être un SELECT."); }
+  catch(e){ error = e.message || String(e); }
+  resetDB(state.db);
+  try{ correctRes = alasql(correctSql); if(!Array.isArray(correctRes)) correctRes = []; }
+  catch(e){ correctRes = []; }
+
+  panel.classList.remove('flash-ok','flash-ko','shake');
+  if(error){
+    state.lastWasCorrect = false;
+    fb.innerHTML = `<div class="feedback ko"><div class="title">✗ Erreur</div><div>${escapeHtml(error)}</div>
+      <div style="margin-top:10px;color:var(--muted);font-size:14px;">Requête attendue :</div><pre>${escapeHtml(correctSql)}</pre>
+      <div style="margin-top:8px;color:var(--muted);font-size:14px;">Résultat attendu :</div><div class="tablewrap">${toTable(correctRes)}</div></div>`;
+    panel.classList.add('flash-ko','shake');
+  } else if(sameResult(userRes, correctRes)){
+    state.score++;
+    state.lastWasCorrect = true;
+    fb.innerHTML = `<div class="feedback ok"><div class="title">✓ Correct !</div><div class="tablewrap">${toTable(userRes)}</div>
+      <div style="margin-top:10px;color:var(--muted);font-size:14px;">Une requête possible :</div><pre>${escapeHtml(correctSql)}</pre></div>`;
+    panel.classList.add('flash-ok');
+    fireConfetti();
+  } else {
+    state.lastWasCorrect = false;
+    fb.innerHTML = `<div class="feedback ko"><div class="title">✗ Résultat incorrect</div>
+      <div style="color:var(--muted);font-size:14px;">Ton résultat :</div><div class="tablewrap">${toTable(userRes)}</div>
+      <div style="margin-top:10px;color:var(--muted);font-size:14px;">Résultat attendu :</div><div class="tablewrap">${toTable(correctRes)}</div>
+      <div style="margin-top:10px;color:var(--muted);font-size:14px;">Requête correcte :</div><pre>${escapeHtml(correctSql)}</pre></div>`;
+    panel.classList.add('flash-ko','shake');
+  }
+  document.getElementById('quizScore').textContent = `Score: ${state.score}/${qs.length}`;
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('retryQBtn').classList.remove('hidden');
+  document.getElementById('nextBtn').classList.remove('hidden');
+  state.answered = true;
+};
+
+/* Ctrl/Cmd + Entrée pour exécuter */
+document.getElementById('sqlInput').addEventListener('keydown', e=>{
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+    e.preventDefault();
+    const b = document.getElementById('runBtn');
+    if(!b.disabled) b.click();
+  }
+});
+
+document.getElementById('nextBtn').onclick = ()=>{
+  const qs = QUESTIONS[state.db][state.level];
+  state.qIndex++;
+  if(state.qIndex >= qs.length){
+    document.getElementById('progressFill').style.width='100%';
+    document.getElementById('recapScore').textContent = `${state.score} / ${qs.length}`;
+    const pct = Math.round(state.score/qs.length*100);
+    document.getElementById('recapLabel').textContent = pct>=80?"Excellent travail !":pct>=50?"Bon travail, continue !":"Entraîne-toi encore un peu.";
+    show('screen-recap');
+  } else {
+    renderQuestion();
+  }
+};
+
+document.getElementById('retryBtn').onclick = ()=>startLevel(state.level);
+document.getElementById('otherLevelBtn').onclick = ()=>{ selectDb(state.db); };
+document.getElementById('otherDbBtn').onclick = ()=>{
+  document.getElementById('statusBadge').classList.add('hidden');
+  show('screen-db');
+};
+document.getElementById('backToDb').onclick = ()=>{
+  document.getElementById('statusBadge').classList.add('hidden');
+  show('screen-db');
+};
+document.getElementById('backToLevel').onclick = ()=>selectDb(state.db);
+
+document.getElementById('retryQBtn').onclick = ()=>{
+  // Reprend la question en cours ; si elle avait été réussie, on retire le point pour rejouer proprement
+  const panel = document.querySelector('#screen-quiz .panel');
+  panel.classList.remove('flash-ok','flash-ko','shake');
+  document.getElementById('sqlInput').value = '';
+  document.getElementById('feedback').innerHTML = '';
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('retryQBtn').classList.add('hidden');
+  document.getElementById('runBtn').disabled = false;
+  state.answered = false;
+  if(state.lastWasCorrect){
+    state.score = Math.max(0, state.score - 1);
+    const qs = QUESTIONS[state.db][state.level];
+    document.getElementById('quizScore').textContent = `Score: ${state.score}/${qs.length}`;
+    state.lastWasCorrect = false;
+  }
+};
+
+initDbGrid();
+show('screen-db');
+
+/* =====================================================
+   CHATBOT (capacité "sample")
+   ===================================================== */
+let sampleFn = null;
+let chatTurns = [];
+let chatBusy = false;
+
+async function initChat(){
+  try{
+    if(window.claude && typeof window.claude.use === 'function'){
+      sampleFn = await window.claude.use('sample');
+    }
+  }catch(e){ sampleFn = null; }
+  if(sampleFn){
+    document.getElementById('chatFab').classList.remove('hidden');
+  }
+}
+
+function buildChatRules(){
+  let ctx = "Tu es l'assistant intégré à l'application ONÉNÉ CHOCO SQL TRAINING, un outil d'entraînement au SQL en français. Réponds toujours en français, de façon concise et pédagogique (quelques phrases, avec un court exemple SQL en bloc de code \`\`\` si utile). Tu aides à comprendre les clauses SQL (SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, JOIN, alias, CASE WHEN, sous-requêtes, CTE...), à déboguer une requête qui ne marche pas, ou à comprendre un résultat inattendu. N'affiche la requête corrigée complète que si on te la demande explicitement ou si l'utilisateur est vraiment bloqué ; privilégie d'abord une explication qui le guide.";
+  if(state.db && DBS[state.db]){
+    const db = DBS[state.db];
+    ctx += `\n\nContexte actuel : base de données "${db.name}". Schéma :\n${db.schema}`;
+  }
+  if(state.db && state.level && QUESTIONS[state.db] && QUESTIONS[state.db][state.level]){
+    const qs = QUESTIONS[state.db][state.level];
+    const realIndex = state.order[state.qIndex];
+    if(realIndex !== undefined && qs[realIndex]){
+      const [qText, correctSql] = qs[realIndex];
+      ctx += `\n\nExercice en cours (niveau ${state.level}) : "${qText}"\nUne requête correcte possible, à ne révéler que si nécessaire : ${correctSql}`;
+    }
+  }
+  return ctx;
+}
+
+function renderChatMsg(text){
+  const parts = text.split(/```(?:sql)?\n?([\s\S]*?)```/g);
+  let out = '';
+  parts.forEach((p,i)=>{
+    if(i%2===0) out += escapeHtml(p).replace(/\n/g,'<br>');
+    else out += '<pre>'+escapeHtml(p)+'</pre>';
+  });
+  return out;
+}
+function addChatMsg(role, text){
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (role==='user' ? 'user' : 'bot');
+  div.innerHTML = renderChatMsg(text);
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  return div;
+}
+
+async function sendChat(){
+  if(chatBusy || !sampleFn) return;
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  addChatMsg('user', text);
+  chatTurns.push({role:'user', content:text});
+  const botDiv = addChatMsg('bot', 'Réflexion...');
+  chatBusy = true;
+  document.getElementById('chatSend').disabled = true;
+  try{
+    const rules = buildChatRules();
+    const { text: answer } = await sampleFn([{role:'user', content:rules}, ...chatTurns], {
+      cache:false,
+      onText: ({text})=>{
+        botDiv.innerHTML = renderChatMsg(text);
+        const body = document.getElementById('chatBody');
+        body.scrollTop = body.scrollHeight;
+      }
+    });
+    chatTurns.push({role:'assistant', content:answer});
+    botDiv.innerHTML = renderChatMsg(answer);
+  }catch(e){
+    let msg = "Une erreur est survenue, réessaie.";
+    if(e && e.code === 'not_granted') msg = "L'assistant n'est pas autorisé pour cette page.";
+    else if(e && e.code === 'rate_limited') msg = "Trop de demandes pour l'instant, réessaie dans un moment.";
+    else if(e && e.text) msg = e.text;
+    else if(e && e.message) msg = "Erreur : " + e.message;
+    botDiv.innerHTML = renderChatMsg(msg);
+    if(chatTurns.length && chatTurns[chatTurns.length-1].role === 'user'){
+      chatTurns.pop();
+    }
+  } finally {
+    chatBusy = false;
+    document.getElementById('chatSend').disabled = false;
+  }
+}
+
+document.getElementById('chatFab').onclick = ()=>{
+  document.getElementById('chatPanel').classList.toggle('hidden');
+  document.getElementById('chatInput').focus();
+};
+document.getElementById('chatClose').onclick = ()=>{
+  document.getElementById('chatPanel').classList.add('hidden');
+};
+document.getElementById('chatSend').onclick = sendChat;
+document.getElementById('chatInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+});
+
+initChat();
+</script>
+</body>
+</html>
